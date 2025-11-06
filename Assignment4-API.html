@@ -1,0 +1,63 @@
+<!--Delete Operation-->
+<?php
+$name = $_POST["name"];
+
+$conn = new mysqli("localhost", "root", "", "student");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$stat = $conn->prepare("DELETE FROM studentinfo WHERE studentname = ?");
+$stat->bind_param("s", $name);
+
+if ($stat->execute()) {
+    if ($stat->affected_rows > 0) {
+        echo "Record deleted successfully";
+    } else {
+        echo "No record found with that name";
+    }
+} else {
+    echo "Error during deletion: " . $conn->error;
+}
+
+$conn->close();
+?>
+
+<!--insert.php-->
+<?php
+$name=$_POST["sname"];
+$marks=$_POST["smarks"];
+$conn=new mysqli("localhost","root","","student");
+if($conn){
+    $stat=$conn->prepare("insert into studentinfo(studentname,studentmarks) values(?,?)");
+    $stat->bind_param("si",$name,$marks);
+    if($stat->execute())
+    {
+        echo"data inserted successfully";
+    }
+    else
+    {
+        echo"error has during insertion";
+    }
+
+}
+else{
+    echo"error in connection";
+}
+
+//$arr=["studentname"=>$name,"studentmarks"=>$marks];
+//$response=json_encode($arr);
+//header('Content-Type: application/json');
+//echo $response;
+
+?>
+
+<!--Server-->
+<?php
+header("Content-Type:application/json");
+$rawdata=file_get_contents("php://input");
+$data=json_decode($rawdata,true); //["name1"=>"ss","color"=>"red"]
+echo json_encode($data); //send data to front
+
+?>

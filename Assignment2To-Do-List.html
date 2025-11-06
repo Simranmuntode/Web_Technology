@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap To-Do List</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .todo-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+        }
+        .todo-header {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #0d6efd;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            transition: all 0.3s;
+        }
+        .task-item:hover {
+            background-color: #e9ecef;
+        }
+        .task-text {
+            flex-grow: 1;
+            margin: 0 15px;
+            word-break: break-word;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        .no-tasks {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="todo-container">
+            <h1 class="todo-header"><i class="fas fa-tasks me-2"></i>To-Do List</h1>
+            
+            <div class="input-group mb-4">
+                <input type="text" class="form-control" id="taskInput" placeholder="Add a new task...">
+                <button class="btn btn-primary" id="addTaskBtn" type="button">
+                    <i class="fas fa-plus me-1"></i>Add Task
+                </button>
+            </div>
+            
+            <div class="d-flex justify-content-between mb-3">
+                <div>
+                    <span class="badge bg-primary rounded-pill" id="totalTasks">0</span> Total Tasks
+                </div>
+                <div>
+                    <span class="badge bg-success rounded-pill" id="completedTasks">0</span> Completed
+                </div>
+            </div>
+            
+            <div id="taskList">
+                <div class="no-tasks">No tasks added yet. Start by adding a task above!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskInput = document.getElementById('taskInput');
+            const addTaskBtn = document.getElementById('addTaskBtn');
+            const taskList = document.getElementById('taskList');
+            const totalTasksElement = document.getElementById('totalTasks');
+            const completedTasksElement = document.getElementById('completedTasks');
+            
+            // Load tasks from localStorage
+            loadTasks();
+            updateTaskCounters();
+            
+            // Add task when button is clicked
+            addTaskBtn.addEventListener('click', addTask);
+            
+            // Add task when Enter key is pressed
+            taskInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTask();
+                }
+            });
+            
+            function addTask() {
+                const taskText = taskInput.value.trim();
+                
+                if (taskText !== '') {
+                    // Remove "no tasks" message if it exists
+                    const noTasksElement = document.querySelector('.no-tasks');
+                    if (noTasksElement) {
+                        noTasksElement.remove();
+                    }
+                    
+                    // Create task item
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'task-item';
+                    
+                    // Create checkbox
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'form-check-input me-2';
+                    checkbox.addEventListener('change', toggleTask);
+                    
+                    // Create task text
+                    const taskSpan = document.createElement('span');
+                    taskSpan.className = 'task-text';
+                    taskSpan.textContent = taskText;
+                    
+                    // Create delete button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-sm btn-danger';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.addEventListener('click', deleteTask);
+                    
+                    // Append elements to task item
+                    taskItem.appendChild(checkbox);
+                    taskItem.appendChild(taskSpan);
+                    taskItem.appendChild(deleteBtn);
+                    
+                    // Add task to the list
+                    taskList.appendChild(taskItem);
+                    
+                    // Clear input field
+                    taskInput.value = '';
+                    taskInput.focus();
+                    
+                    // Save tasks to localStorage
+                    saveTasks();
+                    updateTaskCounters();
+                }
+            }
+            
+            function toggleTask(e) {
+                const taskItem = e.target.closest('.task-item');
+                const taskText = taskItem.querySelector('.task-text');
+                
+                if (e.target.checked) {
+                    taskText.classList.add('completed');
+                } else {
+                    taskText.classList.remove('completed');
+                }
+                
+                // Save tasks to localStorage
+                saveTasks();
+                updateTaskCounters();
+            }
+            
+            function deleteTask(e) {
+                const taskItem = e.target.closest('.task-item');
+                taskItem.remove();
+                
+                // If no tasks left, show "no tasks" message
+                if (taskList.children.length === 0) {
+                    const noTasksElement = document.createElement('div');
+                    noTasksElement.className = 'no-tasks';
+                    noTasksElement.textContent = 'No tasks added yet. Start by adding a task above!';
+                    taskList.appendChild(noTasksElement);
+                }
+                
+                // Save tasks to localStorage
+                saveTasks();
+                updateTaskCounters();
+            }
+            
+            function saveTasks() {
+                const tasks = [];
+                
+                // Get all task items
+                document.querySelectorAll('.task-item').forEach(taskItem => {
+                    const taskText = taskItem.querySelector('.task-text').textContent;
+                    const isCompleted = taskItem.querySelector('input[type="checkbox"]').checked;
+                    
+                    tasks.push({
+                        text: taskText,
+                        completed: isCompleted
+                    });
+                });
+                
+                // Save to localStorage
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+            
+            function loadTasks() {
+                const savedTasks = localStorage.getItem('tasks');
+                
+                if (savedTasks) {
+                    const tasks = JSON.parse(savedTasks);
+                    
+                    // Remove "no tasks" message if it exists
+                    const noTasksElement = document.querySelector('.no-tasks');
+                    if (noTasksElement) {
+                        noTasksElement.remove();
+                    }
+                    
+                    tasks.forEach(task => {
+                        // Create task item
+                        const taskItem = document.createElement('div');
+                        taskItem.className = 'task-item';
+                        
+                        // Create checkbox
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input me-2';
+                        checkbox.checked = task.completed;
+                        checkbox.addEventListener('change', toggleTask);
+                        
+                        // Create task text
+                        const taskSpan = document.createElement('span');
+                        taskSpan.className = 'task-text';
+                        taskSpan.textContent = task.text;
+                        
+                        if (task.completed) {
+                            taskSpan.classList.add('completed');
+                        }
+                        
+                        // Create delete button
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-sm btn-danger';
+                        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        deleteBtn.addEventListener('click', deleteTask);
+                        
+                        // Append elements to task item
+                        taskItem.appendChild(checkbox);
+                        taskItem.appendChild(taskSpan);
+                        taskItem.appendChild(deleteBtn);
+                        
+                        // Add task to the list
+                        taskList.appendChild(taskItem);
+                    });
+                }
+            }
+            
+            function updateTaskCounters() {
+                const totalTasks = document.querySelectorAll('.task-item').length;
+                const completedTasks = document.querySelectorAll('.task-item input[type="checkbox"]:checked').length;
+                
+                totalTasksElement.textContent = totalTasks;
+                completedTasksElement.textContent = completedTasks;
+            }
+        });
+    </script>
+</body>
+</html>

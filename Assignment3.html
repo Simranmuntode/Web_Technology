@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book Finder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #e0f7fa, #fffde7, #ffe0b2);
+      font-family: 'Poppins', sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      padding: 40px;
+      max-width: 600px;
+      text-align: center;
+      color: #333;
+      transition: all 0.3s ease;
+    }
+
+    .heading {
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      text-shadow: 1px 1px rgba(255, 255, 255, 0.4);
+    }
+
+    .subheading {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      color: #7f8c8d;
+    }
+
+    .search-container {
+      display: flex;
+      margin-bottom: 30px;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 12px 20px;
+      border: 2px solid #2c3e50;
+      border-radius: 10px 0 0 10px;
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .search-button {
+      padding: 12px 24px;
+      background-color: #2c3e50;
+      border: 2px solid #2c3e50;
+      border-radius: 0 10px 10px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-button:hover {
+      background-color: #1a252f;
+    }
+
+    .books-container {
+      min-height: 200px;
+      text-align: left;
+    }
+
+    .book-item {
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .book-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+
+    .book-author {
+      font-size: 1.1rem;
+      color: #7f8c8d;
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+
+    .book-year {
+      font-size: 0.9rem;
+      color: #95a5a6;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(44, 62, 80, 0.3);
+      border-radius: 50%;
+      border-top-color: #2c3e50;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .message {
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 20px;
+      color: #7f8c8d;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 0.8rem;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="heading">Book Finder</h1>
+    <p class="subheading">Discover interesting books to read</p>
+    
+    <div class="search-container">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search for books by topic, genre, author..." value="inspiration">
+      <button class="search-button" id="searchButton">Find Books</button>
+    </div>
+    
+    <div class="books-container" id="booksContainer">
+      <div class="message">Enter a search term and click "Find Books" to discover books</div>
+    </div>
+    
+    <p class="footer">Books data provided by Open Library API</p>
+  </div>
+
+  <script>
+    const searchButton = document.getElementById("searchButton");
+    const searchInput = document.getElementById("searchInput");
+    const booksContainer = document.getElementById("booksContainer");
+    
+    // Open Library API endpoint
+    const apiUrl = "https://openlibrary.org/search.json";
+    
+    searchButton.addEventListener("click", searchBooks);
+    searchInput.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        searchBooks();
+      }
+    });
+    
+    // Also search on initial load
+    window.addEventListener('load', searchBooks);
+    
+    async function searchBooks() {
+      try {
+        const searchTerm = searchInput.value.trim();
+        
+        if (!searchTerm) {
+          booksContainer.innerHTML = '<div class="message">Please enter a search term</div>';
+          return;
+        }
+        
+        // Show loading state
+        searchButton.disabled = true;
+        searchButton.innerHTML = '<span class="loading"></span> Searching...';
+        booksContainer.innerHTML = '<div class="message"><span class="loading"></span> Searching for books...</div>';
+        
+        // Fetch data from API
+        const response = await fetch(`${apiUrl}?q=${encodeURIComponent(searchTerm)}&limit=10`);
+        
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Display results
+        if (data.docs && data.docs.length > 0) {
+          let booksHTML = '';
+          
+          data.docs.slice(0, 5).forEach(book => {
+            booksHTML += `
+              <div class="book-item">
+                <div class="book-title">${book.title || 'Unknown Title'}</div>
+                <div class="book-author">By: ${book.author_name ? book.author_name.join(', ') : 'Unknown Author'}</div>
+                <div class="book-year">First published: ${book.first_publish_year || 'Unknown year'}</div>
+              </div>
+            `;
+          });
+          
+          booksContainer.innerHTML = booksHTML;
+        } else {
+          booksContainer.innerHTML = '<div class="message">No books found. Try a different search term.</div>';
+        }
+        
+      } catch (error) {
+        console.error("Error fetching books:", error);
+        booksContainer.innerHTML = '<div class="message">Sorry, we couldn\'t fetch books right now. Please try again later.</div>';
+      } finally {
+        // Reset button state
+        searchButton.disabled = false;
+        searchButton.innerHTML = 'Find Books';
+      }
+    }
+  </script>
+</body>
+</html>
